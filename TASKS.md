@@ -7,7 +7,7 @@
   - 詳細: package.json作成、TypeScript/Vite/Vitest/Tailwind CSSの設定、ディレクトリ構造の作成
   - 完了条件: `npm install`が成功し、`npm run dev`で開発サーバーが起動する
 
-- [ ] 型定義の作成
+- [x] 型定義の作成
   - 目的: アプリケーション全体で使用する型を定義する
   - 詳細: Session, Participant, LotteryState, WebSocketメッセージ型をsrc/types/index.tsに定義
   - 完了条件: 型定義ファイルが作成され、コンパイルエラーがない
