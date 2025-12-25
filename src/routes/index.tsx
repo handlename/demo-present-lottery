@@ -2,8 +2,11 @@ import { Hono } from "hono";
 import { HomePage } from "@/views/home";
 import { SessionCreatedPage } from "@/views/session-created";
 import { sessionManager } from "@/services/session-manager";
+import sessionRoutes from "./session";
 
 const app = new Hono();
+
+app.route("/session", sessionRoutes);
 
 app.get("/", (c) => {
   return c.html(<HomePage />);
