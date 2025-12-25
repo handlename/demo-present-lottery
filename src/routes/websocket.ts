@@ -76,7 +76,10 @@ function getCookieValue(
 export function createParticipantWebSocketHandler(c: Context) {
   const sessionId = c.req.param("id");
   const cookieHeader = c.req.header("cookie");
-  const participantId = getCookieValue(cookieHeader, "participantId");
+  const participantId = getCookieValue(
+    cookieHeader,
+    `participant_${sessionId}`,
+  );
 
   return {
     onOpen(_event: Event, ws: WSContext) {
@@ -155,7 +158,8 @@ export function createParticipantWebSocketHandler(c: Context) {
 export function createHostWebSocketHandler(c: Context) {
   const sessionId = c.req.param("id");
   const cookieHeader = c.req.header("cookie");
-  const isAuthenticated = cookieHeader?.includes(`hostAuth_${sessionId}=true`);
+  const isAuthenticated =
+    getCookieValue(cookieHeader, `host_${sessionId}`) === "true";
 
   return {
     onOpen(_event: Event, ws: WSContext) {

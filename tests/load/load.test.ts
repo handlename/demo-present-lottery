@@ -18,7 +18,9 @@ describe("負荷テスト", () => {
 
       for (let i = 0; i < 50; i++) {
         const result = sessionManager.joinSession(session.id, `参加者${i + 1}`);
-        participants.push(result.participant);
+        if (result) {
+          participants.push(result.participant);
+        }
       }
 
       const duration = Date.now() - startTime;
