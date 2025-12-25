@@ -110,6 +110,71 @@ npx tsc --noEmit
 | 変数名 | 説明 | デフォルト |
 |--------|------|------------|
 | `PORT` | サーバーポート | 3000 |
+| `NODE_ENV` | 環境識別 | development |
+
+## デプロイ
+
+本アプリケーションは [Render](https://render.com/) の無料枠でデプロイできます。
+
+### Renderへのデプロイ手順
+
+#### 方法1: Blueprintを使用（推奨）
+
+1. GitHubリポジトリをRenderに連携
+2. Render Dashboardで「New +」→「Blueprint」を選択
+3. リポジトリを選択すると、`render.yaml`の設定が自動適用される
+
+#### 方法2: 手動設定
+
+1. [Render Dashboard](https://dashboard.render.com/) にアクセス
+2. 「New +」→「Web Service」を選択
+3. GitHubリポジトリを連携し、以下を設定:
+
+| 項目 | 値 |
+|------|-----|
+| Name | `present-exchange`（任意） |
+| Region | `Singapore` または `Oregon` |
+| Branch | `main` |
+| Runtime | `Node` |
+| Build Command | `npm install && npm run build:css` |
+| Start Command | `npm start` |
+| Plan | `Free` |
+
+4. 環境変数を設定:
+
+| 変数名 | 値 |
+|--------|-----|
+| `NODE_ENV` | `production` |
+| `PORT` | `10000` |
+
+5. 「Create Web Service」をクリック
+
+### デプロイ後のURL
+
+デプロイ完了後、以下の形式でアクセス可能になります：
+
+- アプリケーション: `https://{サービス名}.onrender.com`
+- 参加者用WebSocket: `wss://{サービス名}.onrender.com/session/:id/ws`
+- 司会者用WebSocket: `wss://{サービス名}.onrender.com/session/:id/host/ws`
+
+### 無料枠の制限と注意事項
+
+| 制限 | 内容 | 対策 |
+|------|------|------|
+| スリープ | 15分間アクセスがないとスリープ状態になる | イベント開始15分前にアクセスしてウォームアップ |
+| 起動時間 | スリープからの復帰に30〜60秒かかる | 事前にセッションを作成しておく |
+| 月間稼働時間 | 750時間/月まで | 単一サービスなら問題なし |
+| データ永続性 | サービス再起動でセッションデータは消失 | イベント中の再デプロイは避ける |
+
+### Node.jsバージョンについて
+
+Renderでは2025年6月12日以降に作成されたサービスはNode.js 22.16.0がデフォルトです。本アプリケーションはNode.js 20以上で動作するため、Node.js 22でも問題なく動作します。
+
+特定のバージョンを指定したい場合は、プロジェクトルートに`.node-version`ファイルを作成してください：
+
+```
+20.18.0
+```
 
 ## 制約事項
 
