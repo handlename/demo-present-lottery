@@ -109,10 +109,21 @@ describe("ルート統合テスト", () => {
         method: "POST",
         body: joinFormData,
       });
-      expect(joinRes.status).toBe(200);
-      const joinHtml = await joinRes.text();
-      expect(joinHtml).toContain("あなたの抽選番号");
-      expect(joinHtml).toContain("テストユーザー");
+      // 参加後は /me にリダイレクト
+      expect(joinRes.status).toBe(302);
+      expect(joinRes.headers.get("location")).toBe(`/session/${sessionId}/me`);
+
+      // 4. リダイレクト先で参加者画面が表示される
+      const cookie = joinRes.headers.get("set-cookie");
+      const meRes = await app.request(`/session/${sessionId}/me`, {
+        headers: {
+          Cookie: cookie || "",
+        },
+      });
+      expect(meRes.status).toBe(200);
+      const meHtml = await meRes.text();
+      expect(meHtml).toContain("あなたの抽選番号");
+      expect(meHtml).toContain("テストユーザー");
     });
 
     it("存在しないセッションにアクセスするとエラー", async () => {

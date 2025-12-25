@@ -20,6 +20,22 @@ app.get("/:id", (c) => {
     return c.html(<SessionNotFoundPage />);
   }
 
+  if (session.participants.size >= session.maxParticipants) {
+    return c.html(<SessionFullPage sessionId={sessionId} />);
+  }
+
+  return c.html(<JoinPage session={session} />);
+});
+
+// 参加済み画面（Cookieで自分の番号を確認）
+app.get("/:id/me", (c) => {
+  const sessionId = c.req.param("id");
+  const session = sessionManager.getSession(sessionId);
+
+  if (!session) {
+    return c.html(<SessionNotFoundPage />);
+  }
+
   const participantId = getCookie(c, `participant_${sessionId}`);
   if (participantId) {
     const participant = sessionManager.getParticipant(sessionId, participantId);
@@ -30,11 +46,8 @@ app.get("/:id", (c) => {
     }
   }
 
-  if (session.participants.size >= session.maxParticipants) {
-    return c.html(<SessionFullPage sessionId={sessionId} />);
-  }
-
-  return c.html(<JoinPage session={session} />);
+  // Cookieがない場合は参加ページにリダイレクト
+  return c.redirect(`/session/${sessionId}`);
 });
 
 app.post("/:id/join", async (c) => {
@@ -73,12 +86,8 @@ app.post("/:id/join", async (c) => {
       path: "/",
     });
 
-    return c.html(
-      <ParticipantPage
-        session={result.session}
-        participant={result.participant}
-      />,
-    );
+    // 参加後は /me にリダイレクト（同一ブラウザで複数参加を可能にするため）
+    return c.redirect(`/session/${sessionId}/me`);
   } catch (error) {
     if (error instanceof Error && error.message.includes("上限")) {
       return c.html(<SessionFullPage sessionId={sessionId} />);
