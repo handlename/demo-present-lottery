@@ -12,7 +12,7 @@
   - 詳細: Session, Participant, LotteryState, WebSocketメッセージ型をsrc/types/index.tsに定義
   - 完了条件: 型定義ファイルが作成され、コンパイルエラーがない
 
-- [ ] 共通レイアウトの作成
+- [x] 共通レイアウトの作成
   - 目的: 全画面で共通して使用するHTMLレイアウトを作成する
   - 詳細: Hono JSXでlayout.tsxを作成、Tailwind CSS/htmxの読み込みを含める
   - 完了条件: レイアウトコンポーネントが作成され、基本的なHTML構造が出力される
