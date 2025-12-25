@@ -303,7 +303,7 @@ npm run build
 
 | 項目 | 推奨構成 |
 |------|----------|
-| ホスティング | Cloudflare Workers / Fly.io / Railway |
+| ホスティング | Render（推奨）/ Fly.io |
 | Node.js | 20 LTS |
 | メモリ | 256MB以上 |
 
@@ -313,6 +313,166 @@ npm run build
 |--------|------|------------|
 | `PORT` | サーバーポート | 3000 |
 | `NODE_ENV` | 環境識別 | development |
+
+## 12. デプロイ設計
+
+### 12.1 デプロイ要件
+
+本アプリケーションをパブリック環境にデプロイするにあたり、以下の技術要件を満たす必要がある。
+
+| 要件 | 説明 | 必須 |
+|------|------|------|
+| Node.jsランタイム | Node.js 20 LTS以上が動作すること | 必須 |
+| WebSocketサポート | 永続的なWebSocket接続をサポートすること | 必須 |
+| HTTPS | SSL/TLS証明書が自動提供されること | 必須 |
+| カスタムポート | 環境変数でポート番号を指定可能なこと | 必須 |
+| 無料枠 | 継続的なコスト負担なく運用可能なこと | 必須 |
+| 自動デプロイ | GitHubからの自動デプロイに対応していること | 推奨 |
+
+### 12.2 プラットフォーム比較
+
+無料枠でWebSocketをサポートするプラットフォームを比較検討した。
+
+| プラットフォーム | WebSocket | 無料枠 | 制限事項 | 評価 |
+|------------------|-----------|--------|----------|------|
+| **Render** | ○ | Web Service無料枠あり | 15分間アクセスがないとスリープ、月750時間まで | ◎ 推奨 |
+| **Fly.io** | ○ | 3つの共有CPU VMまで無料 | クレジットカード登録必要、リソース制限あり | ○ 次点 |
+| **Railway** | ○ | 月$5のクレジット | クレジット消費後は停止、WebSocket接続時間に制限 | △ |
+| **Cloudflare Workers** | △ | 無制限リクエスト | WebSocketは有料プランのみ、Node.js非互換 | × |
+| **Vercel** | × | 無料枠あり | Serverless関数ベースでWebSocket非対応 | × |
+| **Netlify** | × | 無料枠あり | Functionsは短時間実行のみ、WebSocket非対応 | × |
+| **Heroku** | ○ | なし（2022年廃止） | 無料枠廃止済み | × |
+
+### 12.3 採用プラットフォーム：Render
+
+**Render**を本アプリケーションのデプロイ先として採用する。
+
+#### 採用理由
+
+1. **WebSocket完全対応**: 追加設定なしでWebSocket接続が可能
+2. **Node.js 20サポート**: 最新LTSバージョンに対応
+3. **無料枠の提供**: Web Service（Individual Plan）で無料利用可能
+4. **自動デプロイ**: GitHub連携による自動デプロイに対応
+5. **HTTPS自動化**: SSL証明書の自動発行・更新
+6. **シンプルな設定**: Dockerfileまたはビルドコマンド指定のみで動作
+
+#### 無料枠の制限と対策
+
+| 制限 | 内容 | 対策 |
+|------|------|------|
+| スリープ | 15分間アクセスがないとスリープ状態になる | イベント開始前にアクセスしてウォームアップ |
+| 起動時間 | スリープからの復帰に数十秒かかる | イベント利用時は事前にセッション作成 |
+| 月間時間 | 750時間/月まで | 単一サービスなら24時間×31日=744時間で収まる |
+| スペック | 512MB RAM, 0.1 CPU | 50名程度の同時接続では十分 |
+
+### 12.4 不採用プラットフォームと理由
+
+| プラットフォーム | 不採用理由 |
+|------------------|------------|
+| Cloudflare Workers | Node.jsランタイムではなくWorkers独自ランタイム。`@hono/node-server`や`@hono/node-ws`が動作しない。WebSocketは有料プラン限定 |
+| Vercel | Serverless Functions前提の設計でWebSocket非対応。Edge Functionsも永続接続に対応していない |
+| Netlify | FunctionsはHTTPリクエスト・レスポンス形式のみ対応。WebSocket非対応 |
+| Railway | 無料枠が月$5のクレジット制で、使い切ると停止。予測困難なコスト発生リスク |
+| Heroku | 2022年11月に無料枠が廃止。有料プランは$7/月から |
+| Fly.io | 有力な代替候補だが、クレジットカード登録必須かつリソース管理がやや複雑 |
+
+### 12.5 Renderデプロイ設定
+
+#### render.yaml（Infrastructure as Code）
+
+プロジェクトルートに`render.yaml`を配置することで、Render Blueprintによる自動設定が可能。
+
+```yaml
+services:
+  - type: web
+    name: present-exchange
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build:css
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+    healthCheckPath: /
+```
+
+#### 手動設定手順
+
+1. [Render Dashboard](https://dashboard.render.com/)にアクセス
+2. 「New +」→「Web Service」を選択
+3. GitHubリポジトリを連携
+4. 以下を設定:
+   - **Name**: `present-exchange`（任意）
+   - **Region**: `Oregon (US West)` または `Singapore`
+   - **Branch**: `main`
+   - **Runtime**: `Node`
+   - **Build Command**: `npm install && npm run build:css`
+   - **Start Command**: `npm start`
+   - **Plan**: `Free`
+5. 環境変数を設定:
+   - `NODE_ENV`: `production`
+   - `PORT`: `10000`（Renderのデフォルト）
+
+#### 必要なpackage.json修正
+
+```json
+{
+  "scripts": {
+    "build:css": "npx tailwindcss -i ./src/styles.css -o ./public/styles.css --minify",
+    "start": "node dist/index.js"
+  }
+}
+```
+
+### 12.6 CI/CDパイプライン
+
+GitHub Actionsを利用したCI/CDは以下の構成とする。
+
+```yaml
+# .github/workflows/deploy.yml
+name: Deploy to Render
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+
+  # Renderは自動デプロイを使用するため、deployジョブは不要
+  # GitHubリポジトリ連携により、mainブランチへのpush時に自動デプロイされる
+```
+
+### 12.7 本番環境URL構成
+
+デプロイ後のURLは以下の形式となる。
+
+| 種別 | URL |
+|------|-----|
+| アプリケーション | `https://present-exchange.onrender.com` |
+| WebSocket（参加者） | `wss://present-exchange.onrender.com/session/:id/ws` |
+| WebSocket（司会者） | `wss://present-exchange.onrender.com/session/:id/host/ws` |
+
+※サービス名により実際のURLは異なる
+
+### 12.8 運用上の注意事項
+
+1. **スリープ対策**: イベント開始15分前までにURLにアクセスし、サービスをウォームアップする
+2. **セッション有効期限**: インメモリストアのため、サービス再起動でセッションは消失する。イベント中の再デプロイは避ける
+3. **監視**: Render Dashboardでログとメトリクスを確認可能
+4. **スケールアップ**: 参加者が50名を超える場合や頻繁に利用する場合は有料プラン（$7/月〜）へのアップグレードを検討
 
 ## 10. 要件トレーサビリティ
 
@@ -335,4 +495,6 @@ npm run build
 
 1. 本設計書のレビューと承認
 2. `/prj-define-tasks` コマンドによるタスク定義
-3. 実装フェーズへの移行
+3. デプロイ準備（render.yaml作成、package.json修正）
+4. Renderへのデプロイと動作確認
+5. 運用開始

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "npx tsx watch src/index.ts",
     "build": "vite build",
+    "build:css": "npx tailwindcss -i ./src/styles.css -o ./public/styles.css --minify",
     "preview": "vite preview",
     "start": "node dist/index.js",
     "test": "vitest run",

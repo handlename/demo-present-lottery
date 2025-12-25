@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: present-exchange
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build:css
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+    healthCheckPath: /
