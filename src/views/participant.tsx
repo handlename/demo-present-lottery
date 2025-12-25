@@ -156,16 +156,52 @@ export const ParticipantPage: FC<ParticipantPageProps> = ({
       }
 
       function showWinnerBanner(order) {
+        // 紙吹雪エフェクト
+        createConfetti();
+
+        // バナー表示
         const container = document.getElementById('lottery-status');
         let banner = document.getElementById('winner-banner');
         if (!banner) {
           banner = document.createElement('div');
           banner.id = 'winner-banner';
-          banner.className = 'mt-4 p-4 bg-yellow-100 rounded-lg text-center animate-pulse';
           container.appendChild(banner);
         }
-        banner.innerHTML = '<p class="text-yellow-800 font-bold text-xl">おめでとうございます！</p>' +
-          '<p class="text-yellow-700">' + order + '番目に当選しました</p>';
+        banner.className = 'mt-4 p-6 bg-gradient-to-r from-yellow-200 via-yellow-100 to-yellow-200 rounded-lg text-center animate-winner-glow animate-bounce-in';
+        banner.innerHTML = '<p class="text-yellow-800 font-bold text-2xl mb-2">🎉 おめでとうございます！ 🎉</p>' +
+          '<p class="text-yellow-700 text-lg">' + order + '番目に当選しました</p>';
+
+        // 抽選番号カードもハイライト
+        const numberCard = document.querySelector('.text-6xl');
+        if (numberCard) {
+          numberCard.classList.add('animate-shake');
+          numberCard.style.color = '#ca8a04';
+          setTimeout(function() {
+            numberCard.classList.remove('animate-shake');
+          }, 500);
+        }
+      }
+
+      function createConfetti() {
+        const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#ffa500', '#ff69b4'];
+        const container = document.createElement('div');
+        container.className = 'confetti-container';
+        document.body.appendChild(container);
+
+        for (let i = 0; i < 50; i++) {
+          const confetti = document.createElement('div');
+          confetti.className = 'confetti-piece';
+          confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+          confetti.style.left = (Math.random() * 200 - 100) + 'px';
+          confetti.style.top = (Math.random() * 200 - 100) + 'px';
+          confetti.style.animationDelay = (Math.random() * 0.5) + 's';
+          confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+          container.appendChild(confetti);
+        }
+
+        setTimeout(function() {
+          container.remove();
+        }, 2000);
       }
 
       function showCompleted() {
